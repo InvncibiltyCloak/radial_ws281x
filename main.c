@@ -1,5 +1,9 @@
 #include "main.h"
 
+#define ROTATION_RATE 100 //RPM
+#define REFRESH_RATE  200 //Hz
+
+
 Image image;
 
 int main(int argc, char* argv[]){
@@ -10,7 +14,9 @@ int main(int argc, char* argv[]){
   }
 
   loadImage(&image, argv[1]);
-  
+
+  cropToSquare(&image);
+
 
 }
 
@@ -78,4 +84,27 @@ void loadImage(Image *image, char* filename) {
   image->data = (Pixel *) buffer2;
 
   return;
+}
+
+void cropToSquare(Image *image) {
+  if(image->width < image->height) {
+    memmove(image->data,
+            image->data + ((image->height - image->width)/2*image->width),
+            ((uint32_t)image->width)^2*sizeof(Pixel));
+    image->data = realloc(image->data, ((uint32_t)image->width)^2*sizeof(Pixel));
+    image->height = image->width;
+  } else {
+    uint16_t start_offset = (image->width - image->height)/2;
+    for(uint16_t row = 0; row < image->height; row++){
+      memmove(image->data + (row*image->height),
+              image->data + (image->width*row + start_offset),
+              image->height*sizeof(Pixel));
+    }
+    image->data = realloc(image->data, ((uint32_t)image->height)^2*sizeof(Pixel));
+    image->width = image->height;
+  }
+  if(!image->data) {
+    EPRINT("Error: Unable to realloc image data after crop!\n");
+    exit(-1);
+  }
 }
