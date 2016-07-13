@@ -12,5 +12,4 @@
 #define DPRINT(args...) printf (args)
 
 int main(int argc, char* argv[]);
-
-unsigned char* loadImage(char* filename);
+void loadImage(Image *image, char* filename);

@@ -1,6 +1,6 @@
 #include "main.h"
 
-Pixel *image;
+Image image;
 
 int main(int argc, char* argv[]){
   if(argc < 1){
@@ -9,12 +9,12 @@ int main(int argc, char* argv[]){
     return -1;
   }
 
-  assert(tjPixelSize[TJPF_RGB] == sizeof(Pixel));
-  image = (Pixel *) loadImage(argv[1]);
+  loadImage(&image, argv[1]);
+  
 
 }
 
-unsigned char* loadImage(char* filename) {
+void loadImage(Image *image, char* filename) {
   FILE* jpegfile = fopen(filename, "rb");
   if(jpegfile == NULL) {
     EPRINT("Error: Unable to open file!\n");
@@ -57,6 +57,9 @@ unsigned char* loadImage(char* filename) {
     exit(-1);
   }
 
+  image->width = width;
+  image->height = height;
+
   unsigned long decompressed_size;
   decompressed_size = tjBufSize(width, height, jpegSubsamp);
   unsigned char* buffer2 = (unsigned char*) malloc(decompressed_size);
@@ -71,5 +74,8 @@ unsigned char* loadImage(char* filename) {
   tjDestroy(decomp);
   free(buffer);
 
-  return buffer2;
+  assert(tjPixelSize[TJPF_RGB] == sizeof(Pixel));
+  image->data = (Pixel *) buffer2;
+
+  return;
 }
