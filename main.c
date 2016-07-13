@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
   lookup = allocateLookup(numSlices);
 
   // Generate lookup table for that number of slices
-
+  generateLookup(lookup, numSlices);
 
 }
 
@@ -161,12 +161,13 @@ ws2811_led_t **allocateLookup(int numSlices) {
   return lookup;
 }
 
-inline void radial_to_cartesian(double r, double th) {
-  // TODO: Upgrade to Yeppp?
-
-}
-
 // Runs the bilinear image interpolation to generate the values of the lookup table
 void generateLookup(ws2811_led_t **lookup, int numSlices) {
-
+  for(int ang_stop = 0; ang_stop < numSlices; ang_stop++) {
+    for(int i = 0; i < LED_COUNT; i++) {
+      double r = (i+1.0)/LED_COUNT;
+      double th = ang_stop * 2 * M_PI / numSlices;
+      lookup[ang_stop][i] = *((ws2811_led_t *)interpolate(&image, r*cos(th), r*sin(th)));
+    }
+  }
 }

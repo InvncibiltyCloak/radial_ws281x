@@ -3,7 +3,7 @@ CFLAGS  = -g -Wall -Werror -std=gnu99
 MAIN = main
 INCLUDES = -I./include
 LIBPATH = -L./lib
-LIBS = -lturbojpeg -lws2811
+LIBS = -lturbojpeg -lws2811 -lm
 
 SRCS = main.c bilinear.c
 OBJS = $(SRCS:.c=.o)
