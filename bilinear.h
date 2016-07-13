@@ -4,6 +4,7 @@
 #include <assert.h>
 
 typedef struct {
+  uint8_t pad;
   uint8_t red;
   uint8_t green;
   uint8_t blue;
@@ -19,6 +20,8 @@ typedef struct {
   uint16_t x;
   uint16_t y;
 } Coord;
+
+
 
 Pixel* get_at(Image *img, Coord coord);
 

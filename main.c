@@ -3,11 +3,32 @@
 #define ROTATION_RATE 100 //RPM
 #define REFRESH_RATE  200 //Hz
 
-
 Image image;
 
+ws2811_t ledstring = {
+    .freq = TARGET_FREQ,
+    .dmanum = DMA,
+    .channel = {
+        [0] = {
+            .gpionum = GPIO_PIN,
+            .count = LED_COUNT,
+            .invert = 0,
+            .brightness = 255,
+            .strip_type = STRIP_TYPE,
+        },
+        [1] = {
+            .gpionum = 0,
+            .count = 0,
+            .invert = 0,
+            .brightness = 0,
+        },
+    },
+};
+
+ws2811_led_t **lookup;
+
 int main(int argc, char* argv[]){
-  if(argc < 1){
+  if(argc < 2){
     printf("Not enough input arguments!\n");
     printf("Usage: %s filename\n", argv[0]);
     return -1;
@@ -17,9 +38,21 @@ int main(int argc, char* argv[]){
 
   cropToSquare(&image);
 
+  uint16_t numSlices = (REFRESH_RATE * 60) / ROTATION_RATE;
+
+  ws2811_init(&ledstring);
+  // Undo the built-in allocation, since we are going to allocate a lot more
+  free(ledstring.channel[0].leds);
+
+  lookup = allocateLookup(numSlices);
+
+  // Generate lookup table for that number of slices
+
 
 }
 
+// Given a filename and an image object, it loads the file with that name into
+// the object.
 void loadImage(Image *image, char* filename) {
   FILE* jpegfile = fopen(filename, "rb");
   if(jpegfile == NULL) {
@@ -67,10 +100,10 @@ void loadImage(Image *image, char* filename) {
   image->height = height;
 
   unsigned long decompressed_size;
-  decompressed_size = tjBufSize(width, height, jpegSubsamp);
+  decompressed_size = width*height*tjPixelSize[PIXEL_FORMAT];
   unsigned char* buffer2 = (unsigned char*) malloc(decompressed_size);
 
-  if(tjDecompress2(decomp, buffer, filesize, buffer2, width, width * tjPixelSize[TJPF_RGB], height, TJPF_RGB, TJFLAG_NOREALLOC)) {
+  if(tjDecompress2(decomp, buffer, filesize, buffer2, width, width * tjPixelSize[PIXEL_FORMAT], height, PIXEL_FORMAT, TJFLAG_NOREALLOC)) {
     EPRINT("Error: Unable to decompress JPEG image!\n");
     EPRINT("%s\n", tjGetErrorStr());
     exit(-1);
@@ -80,12 +113,14 @@ void loadImage(Image *image, char* filename) {
   tjDestroy(decomp);
   free(buffer);
 
-  assert(tjPixelSize[TJPF_RGB] == sizeof(Pixel));
+  assert(tjPixelSize[PIXEL_FORMAT] == sizeof(Pixel));
   image->data = (Pixel *) buffer2;
 
   return;
 }
 
+// Given an image object, this function crops it to be the largest square from
+// the original
 void cropToSquare(Image *image) {
   if(image->width < image->height) {
     memmove(image->data,
@@ -107,4 +142,31 @@ void cropToSquare(Image *image) {
     EPRINT("Error: Unable to realloc image data after crop!\n");
     exit(-1);
   }
+}
+
+// Allocates the memory needed for a lookup table of a given number of slices
+ws2811_led_t **allocateLookup(int numSlices) {
+  ws2811_led_t **lookup;
+  if(!(lookup = (ws2811_led_t **)malloc(numSlices * sizeof(ws2811_led_t *)))) {
+    EPRINT("Error: Unable to allocate space for lookup table top level!\n");
+    exit(-1);
+  }
+
+  for(int i = 0; i < numSlices; i++) {
+    if(!(lookup[i] = (ws2811_led_t *)malloc(LED_COUNT * sizeof(ws2811_led_t)))) {
+      EPRINT("Error: Unable to allocate space for lookup table data!\n");
+      exit(-1);
+    }
+  }
+  return lookup;
+}
+
+inline void radial_to_cartesian(double r, double th) {
+  // TODO: Upgrade to Yeppp?
+
+}
+
+// Runs the bilinear image interpolation to generate the values of the lookup table
+void generateLookup(ws2811_led_t **lookup, int numSlices) {
+
 }
