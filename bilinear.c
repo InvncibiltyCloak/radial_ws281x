@@ -1,6 +1,7 @@
 #include "bilinear.h"
 
 static void weighted_average_pixel(Pixel *first, Pixel *second, Pixel *result, double weight);
+static Pixel* get_at(Image *img, Coord coord);
 
 Pixel* interpolate(Image *img, double x, double y) {
   Coord tl_coord = {
@@ -42,7 +43,7 @@ Pixel* interpolate(Image *img, double x, double y) {
   return result;
 }
 
-Pixel* get_at(Image *img, Coord coord) {
+static Pixel* get_at(Image *img, Coord coord) {
   assert(coord.x >= 0 && coord.x < img->width && coord.y >= 0 && coord.y < img->height);
   return img->data + (coord.y * img->width + coord.x);
 }

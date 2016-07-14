@@ -23,7 +23,6 @@ typedef struct {
 
 
 
-Pixel* get_at(Image *img, Coord coord);
 Pixel* interpolate(Image *img, double x, double y);
 
 #define EPRINT(args...) fprintf (stderr, args)

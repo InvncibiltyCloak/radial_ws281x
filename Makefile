@@ -12,7 +12,7 @@ all: build
 build: CFLAGS += -DNDEBUG
 build: $(MAIN)
 
-perf: CFLAGS += -DPERFCOUNT
+perf: CFLAGS += -DPERFCOUNT -pg
 perf: debug
 
 debug: CFLAGS += -g -DDEBUG

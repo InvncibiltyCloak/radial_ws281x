@@ -28,8 +28,6 @@ ws2811_t ledstring = {
     },
 };
 
-ws2811_led_t **lookup;
-
 int main(int argc, char* argv[]){
   if(argc < 2){
     printf("Not enough input arguments!\n");
@@ -44,28 +42,23 @@ int main(int argc, char* argv[]){
   uint16_t numSlices = (REFRESH_RATE * 60) / ROTATION_RATE;
 
   ws2811_init(&ledstring);
-  // Undo the built-in allocation, since we are going to allocate a lot more
-  free(ledstring.channel[0].leds);
-
-  lookup = allocateLookup(numSlices);
-  generateLookup(lookup, numSlices);
-
   setup_handlers();
 
   unsigned int updatesCompleted = 0;
+  double th;
 
   #ifdef PERFCOUNT
   struct timespec start, end;
-
   printf("Update rate:\n");
   if(clock_gettime(CLOCK_REALTIME, &start)) {
     EPRINT("Error: Couldnt get clock time!");
   }
   #endif
 
-  //Main loop
   while(running) {
-    ledstring.channel[0].leds = lookup[updatesCompleted % numSlices];
+    th = (updatesCompleted % numSlices) * 2 * M_PI / numSlices;
+    generateSlice(ledstring.channel[0].leds, th);
+
     if (ws2811_render(&ledstring)) {
       EPRINT("Error: Rendering string didnt return 0!\n");
       break;
@@ -85,6 +78,7 @@ int main(int argc, char* argv[]){
     #endif
   }
 
+  // Clear the led strip before exiting
   for(int i = 0; i < LED_COUNT; i++) {
     ledstring.channel[0].leds[i] = 0;
   }
@@ -185,32 +179,13 @@ void cropToSquare(Image *image) {
   }
 }
 
-// Allocates the memory needed for a lookup table of a given number of slices
-ws2811_led_t **allocateLookup(int numSlices) {
-  ws2811_led_t **lookup;
-  if(!(lookup = malloc(numSlices * sizeof *lookup))) {
-    EPRINT("Error: Unable to allocate space for lookup table top level!\n");
-    exit(-1);
-  }
-
-  for(int i = 0; i < numSlices; i++) {
-    if(!(lookup[i] = malloc(LED_COUNT * sizeof *(lookup[i])))) {
-      EPRINT("Error: Unable to allocate space for lookup table data!\n");
-      exit(-1);
-    }
-  }
-  return lookup;
-}
-
-// Runs the bilinear image interpolation to generate the values of the lookup table
-void generateLookup(ws2811_led_t **lookup, int numSlices) {
-  assert(sizeof(ws2811_led_t) == sizeof(Pixel));
-  for(int ang_stop = 0; ang_stop < numSlices; ang_stop++) {
-    for(int i = 0; i < LED_COUNT; i++) {
-      double r = (i+1.0)/LED_COUNT;
-      double th = ang_stop * 2 * M_PI / numSlices;
-      lookup[ang_stop][i] = *((ws2811_led_t *)interpolate(&image, r*cos(th), r*sin(th)));
-    }
+// Interpolates pixel values from the image in order to generate the colors that
+// the LED strip needs to display at this instant
+void generateSlice(ws2811_led_t *strip, double th) {
+  SASSERT(sizeof(ws2811_led_t) == sizeof(Pixel));
+  for(int i = 0; i < LED_COUNT; i++) {
+    double r = (i+1.0)/LED_COUNT;
+    strip[i] = *((ws2811_led_t *)interpolate(&image, r*cos(th), r*sin(th)));
   }
 }
 
