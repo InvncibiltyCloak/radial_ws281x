@@ -1,5 +1,4 @@
-CC = gcc
-CFLAGS  = -g -Wall -Werror -std=gnu99
+CFLAGS  = -Wall -Werror -std=gnu99
 MAIN = main
 INCLUDES = -I./include
 LIBPATH = -L./lib
@@ -10,7 +9,14 @@ OBJS = $(SRCS:.c=.o)
 
 all: build
 
+build: CFLAGS += -DNDEBUG
 build: $(MAIN)
+
+perf: CFLAGS += -DPERFCOUNT
+perf: debug
+
+debug: CFLAGS += -g -DDEBUG
+debug: $(MAIN)
 
 $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LIBPATH) $(LIBS)
@@ -19,4 +25,4 @@ $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
-	rm *.o *~ $(MAIN)
+	rm *.o $(MAIN)

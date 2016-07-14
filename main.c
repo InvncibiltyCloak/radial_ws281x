@@ -1,9 +1,12 @@
 #include "main.h"
 
 #define ROTATION_RATE 100 //RPM
-#define REFRESH_RATE  200 //Hz
+#define REFRESH_RATE  165 //Hz
+
+static void setup_handlers(void);
 
 Image image;
+static uint8_t running = 1;
 
 ws2811_t ledstring = {
     .freq = TARGET_FREQ,
@@ -45,10 +48,48 @@ int main(int argc, char* argv[]){
   free(ledstring.channel[0].leds);
 
   lookup = allocateLookup(numSlices);
-
-  // Generate lookup table for that number of slices
   generateLookup(lookup, numSlices);
 
+  setup_handlers();
+
+  unsigned int updatesCompleted = 0;
+
+  #ifdef PERFCOUNT
+  struct timespec start, end;
+
+  printf("Update rate:\n");
+  if(clock_gettime(CLOCK_REALTIME, &start)) {
+    EPRINT("Error: Couldnt get clock time!");
+  }
+  #endif
+
+  //Main loop
+  while(running) {
+    ledstring.channel[0].leds = lookup[updatesCompleted % numSlices];
+    if (ws2811_render(&ledstring)) {
+      EPRINT("Error: Rendering string didnt return 0!\n");
+      break;
+    }
+    updatesCompleted += 1;
+
+    #ifdef PERFCOUNT
+    if(!(updatesCompleted % 300)) {
+      if(clock_gettime(CLOCK_REALTIME, &end)) {
+        EPRINT("Error: Couldnt get clock time!");
+      }
+      double freq = 300000.0/((end.tv_sec - start.tv_sec)*1000 + (end.tv_nsec - start.tv_nsec)/1000000);
+      printf("\t%.2f Hz\r", freq);
+      fflush(stdout);
+      start = end;
+    }
+    #endif
+  }
+
+  for(int i = 0; i < LED_COUNT; i++) {
+    ledstring.channel[0].leds[i] = 0;
+  }
+  ws2811_render(&ledstring);
+  ws2811_fini(&ledstring);
 }
 
 // Given a filename and an image object, it loads the file with that name into
@@ -68,7 +109,7 @@ void loadImage(Image *image, char* filename) {
 
   off_t  filesize = stbuf.st_size;
 
-  unsigned char* buffer = (unsigned char*)malloc(filesize);
+  unsigned char* buffer = malloc(filesize);
   if (buffer == NULL) {
     EPRINT("Error: Unable to allocate memory for jpeg!\n");
     exit(-1);
@@ -101,7 +142,7 @@ void loadImage(Image *image, char* filename) {
 
   unsigned long decompressed_size;
   decompressed_size = width*height*tjPixelSize[PIXEL_FORMAT];
-  unsigned char* buffer2 = (unsigned char*) malloc(decompressed_size);
+  unsigned char* buffer2 = malloc(decompressed_size);
 
   if(tjDecompress2(decomp, buffer, filesize, buffer2, width, width * tjPixelSize[PIXEL_FORMAT], height, PIXEL_FORMAT, TJFLAG_NOREALLOC)) {
     EPRINT("Error: Unable to decompress JPEG image!\n");
@@ -147,13 +188,13 @@ void cropToSquare(Image *image) {
 // Allocates the memory needed for a lookup table of a given number of slices
 ws2811_led_t **allocateLookup(int numSlices) {
   ws2811_led_t **lookup;
-  if(!(lookup = (ws2811_led_t **)malloc(numSlices * sizeof(ws2811_led_t *)))) {
+  if(!(lookup = malloc(numSlices * sizeof *lookup))) {
     EPRINT("Error: Unable to allocate space for lookup table top level!\n");
     exit(-1);
   }
 
   for(int i = 0; i < numSlices; i++) {
-    if(!(lookup[i] = (ws2811_led_t *)malloc(LED_COUNT * sizeof(ws2811_led_t)))) {
+    if(!(lookup[i] = malloc(LED_COUNT * sizeof *(lookup[i])))) {
       EPRINT("Error: Unable to allocate space for lookup table data!\n");
       exit(-1);
     }
@@ -163,6 +204,7 @@ ws2811_led_t **allocateLookup(int numSlices) {
 
 // Runs the bilinear image interpolation to generate the values of the lookup table
 void generateLookup(ws2811_led_t **lookup, int numSlices) {
+  assert(sizeof(ws2811_led_t) == sizeof(Pixel));
   for(int ang_stop = 0; ang_stop < numSlices; ang_stop++) {
     for(int i = 0; i < LED_COUNT; i++) {
       double r = (i+1.0)/LED_COUNT;
@@ -170,4 +212,18 @@ void generateLookup(ws2811_led_t **lookup, int numSlices) {
       lookup[ang_stop][i] = *((ws2811_led_t *)interpolate(&image, r*cos(th), r*sin(th)));
     }
   }
+}
+
+static void ctrl_c_handler(int signum) {
+  running = 0;
+}
+
+static void setup_handlers(void) {
+  struct sigaction sa =
+  {
+    .sa_handler = ctrl_c_handler,
+  };
+
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGTERM, &sa, NULL);
 }

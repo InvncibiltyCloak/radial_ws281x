@@ -2,16 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
+#include <signal.h>
 #include <assert.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "bilinear.h"
 #include "ws2811.h"
 #include "turbojpeg.h"
-
 
 #define PIXEL_FORMAT              TJPF_XRGB
 

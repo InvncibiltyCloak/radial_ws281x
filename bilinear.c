@@ -30,7 +30,7 @@ Pixel* interpolate(Image *img, double x, double y) {
   double resid_x = x - tl_coord.x;
   double resid_y = y - tl_coord.y;
 
-  Pixel *result = (Pixel *)malloc(sizeof(Pixel));
+  Pixel *result = malloc(sizeof *result);
   if(!result) {
     EPRINT("Error: Unable to allocate memory for a pixel!\n");
     exit(-1);
