@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 
   while(running) {
     th = (updatesCompleted % numSlices) * 2 * M_PI / numSlices;
-    generateSlice(ledstring.channel[0].leds, th);
+    generateSlice(ledstring.channel[0].leds, th, image.height);
 
     if (ws2811_render(&ledstring)) {
       EPRINT("Error: Rendering string didnt return 0!\n");
@@ -160,7 +160,7 @@ void cropToSquare(Image *image) {
   if(image->width < image->height) {
     memmove(image->data,
             image->data + ((image->height - image->width)/2*image->width),
-            ((uint32_t)image->width)^2*sizeof(Pixel));
+            (uint32_t)image->width*image->width*sizeof(Pixel));
     image->data = realloc(image->data, ((uint32_t)image->width)^2*sizeof(Pixel));
     image->height = image->width;
   } else {
@@ -170,7 +170,7 @@ void cropToSquare(Image *image) {
               image->data + (image->width*row + start_offset),
               image->height*sizeof(Pixel));
     }
-    image->data = realloc(image->data, ((uint32_t)image->height)^2*sizeof(Pixel));
+    image->data = realloc(image->data, (uint32_t)image->height*image->height*sizeof(Pixel));
     image->width = image->height;
   }
   if(!image->data) {
@@ -181,11 +181,13 @@ void cropToSquare(Image *image) {
 
 // Interpolates pixel values from the image in order to generate the colors that
 // the LED strip needs to display at this instant
-void generateSlice(ws2811_led_t *strip, double th) {
+void generateSlice(ws2811_led_t *strip, double th, uint16_t imgDim) {
   SASSERT(sizeof(ws2811_led_t) == sizeof(Pixel));
+  double c = cos(th);
+  double s = sin(th);
   for(int i = 0; i < LED_COUNT; i++) {
-    double r = (i+1.0)/LED_COUNT;
-    strip[i] = *((ws2811_led_t *)interpolate(&image, r*cos(th), r*sin(th)));
+    double r = (i+1.0)/LED_COUNT * (imgDim/2 - 1);
+    strip[i] = *((ws2811_led_t *)interpolate(&image, r*c + imgDim/2, r*s + imgDim/2));
   }
 }
 

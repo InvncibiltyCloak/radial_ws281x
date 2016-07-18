@@ -36,4 +36,4 @@
 int main(int argc, char* argv[]);
 void loadImage(Image *image, char* filename);
 void cropToSquare(Image *image);
-void generateSlice(ws2811_led_t *strip, double th);
+void generateSlice(ws2811_led_t *strip, double th, uint16_t imgDim);

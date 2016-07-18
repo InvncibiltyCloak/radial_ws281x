@@ -4,6 +4,7 @@ static void weighted_average_pixel(Pixel *first, Pixel *second, Pixel *result, d
 static Pixel* get_at(Image *img, Coord coord);
 
 Pixel* interpolate(Image *img, double x, double y) {
+  assert(x >= 0 && y >= 0); // This is normally hidden by the cast to uint
   Coord tl_coord = {
     .x = (uint16_t) x,
     .y = (uint16_t) y
@@ -44,7 +45,8 @@ Pixel* interpolate(Image *img, double x, double y) {
 }
 
 static Pixel* get_at(Image *img, Coord coord) {
-  assert(coord.x >= 0 && coord.x < img->width && coord.y >= 0 && coord.y < img->height);
+  assert(coord.x < img->width && coord.y < img->height);
+    // Dont need to check lower bound because it is underflow.
   return img->data + (coord.y * img->width + coord.x);
 }
 
