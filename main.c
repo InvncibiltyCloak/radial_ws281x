@@ -186,8 +186,8 @@ void generateSlice(ws2811_led_t *strip, double th, uint16_t imgDim) {
   double c = cos(th);
   double s = sin(th);
   for(int i = 0; i < LED_COUNT; i++) {
-    double r = (i+1.0)/LED_COUNT * (imgDim/2 - 1);
-    strip[i] = *((ws2811_led_t *)interpolate(&image, r*c + imgDim/2, r*s + imgDim/2));
+    double r = (i+1.0)/LED_COUNT*(imgDim/2 - 2);
+    strip[i] = *((ws2811_led_t *)interpolate(&image, r*c + imgDim/2.0, r*s + imgDim/2.0));
   }
 }
 

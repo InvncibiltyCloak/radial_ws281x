@@ -13,12 +13,12 @@
 #include "ws2811.h"
 #include "turbojpeg.h"
 
-#define PIXEL_FORMAT              TJPF_XRGB
+#define PIXEL_FORMAT              TJPF_BGRX
 
 #define TARGET_FREQ               WS2811_TARGET_FREQ
 #define GPIO_PIN                  18
 #define DMA                       5
-#define STRIP_TYPE                WS2811_STRIP_RGB
+#define STRIP_TYPE                WS2811_STRIP_GRB
 #define WIDTH                     144
 #define HEIGHT                    1
 #define LED_COUNT                 (WIDTH * HEIGHT)
